@@ -1,7 +1,5 @@
 import os
-import subprocess
 import config
-import platform
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 from auth import login
@@ -11,37 +9,13 @@ from navigation import (
     descargar_excel_si_existe
 )
 
-
-
-def abrir_archivo(path):
-    if not os.path.exists(path):
-        print(f"Archivo no encontrado: {path}")
-        return
-
-    sistema = platform.system()
-
-    try:
-        if sistema == "Windows":
-            os.startfile(path)  # abre con la aplicación predeterminada
-        elif sistema == "Darwin":  # macOS
-            subprocess.Popen(["open", path])
-        else:  # Linux
-            subprocess.Popen(
-                ["xdg-open", path],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
-            )
-        print(f"Abriendo archivo: {path}")
-
-    except Exception as e:
-        print(f"No se pudo abrir el archivo automáticamente: {e}")
-
-
-
-
 def main():
+    # === 1. Crear carpeta 'descargas' si no existe ===
+    if not os.path.exists("descargas"):
+        os.makedirs("descargas")
+        print("Carpeta 'descargas' creada correctamente.")
 
-    # === Solicitar año con valor por defecto ===
+    # === 2. Solicitar año ===
     current_year = datetime.now().year
     while True:
         entrada = input(f"Ingrese año (ENTER = {current_year}): ").strip()
@@ -56,7 +30,7 @@ def main():
         except ValueError:
             print("Debe ser un número.")
 
-    # === Solicitar mes (obligatorio) ===
+    # === 3. Solicitar mes ===
     while True:
         entrada = input("Ingrese mes (1-12): ").strip()
         try:
@@ -73,7 +47,9 @@ def main():
     print("Mes:", month)
 
     TIPOS = ["VENTAS", "COMPRAS"]
-    archivos_descargados = []
+    
+    # Intentamos obtener cédula de config si existe
+    cedula = getattr(config, 'CEDULA', None)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -85,27 +61,24 @@ def main():
 
         page = abrir_por_buscador(context, page, "Consulta De Comprobantes Registrados")
 
-        # Procesar ambos tipos
+        # Procesar ambos tipos (Ventas y Compras)
         for tipo in TIPOS:
             print(f"\n=== Procesando {tipo} ===")
 
             cargar_filtros_comprobantes_registrados(page, tipo, year, month)
-            ruta_excel = descargar_excel_si_existe(page, year, month)
-
+            
+            # Pasamos la cédula si está configurada
+            ruta_excel = descargar_excel_si_existe(page, year, month, cedula=cedula)
 
             if ruta_excel:
-                archivos_descargados.append(ruta_excel)
+                print(f"Guardado: {ruta_excel}")
+            else:
+                print("No se encontraron registros.")
 
             page.wait_for_timeout(1500)
 
-        print("\nFIN DEL PROCESO — Todos los Excel descargados.")
-
+        print("\nFIN DEL PROCESO — Archivos guardados en la carpeta 'descargas'.")
         browser.close()
-
-    for archivo in archivos_descargados:
-        print("Abriendo:", archivo)
-        abrir_archivo(archivo)
-
 
 if __name__ == "__main__":
     main()

@@ -7,7 +7,7 @@ from auth import login
 from navigation import (
     abrir_por_buscador,
     cargar_filtros_comprobantes_registrados,
-    descargar_excel_si_existe_anual
+    descargar_excel_si_existe
 )
 
 def descargar_anio():
@@ -53,7 +53,7 @@ def descargar_anio():
                     print(f"  -> {tipo}...", end=" ")
                     cargar_filtros_comprobantes_registrados(page, tipo, year, month)
                     
-                    ruta = descargar_excel_si_existe_anual(page, year, month, cedula=cedula)
+                    ruta = descargar_excel_si_existe(page, year, month, cedula=cedula)
                     
                     if ruta: print("OK")
                     else: print("Sin datos")
