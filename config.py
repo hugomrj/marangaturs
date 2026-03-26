@@ -1,2 +1,2 @@
-USER = "5337921"
-PASSWORD = "maYa1705"
+USER = "tu_usuario"
+PASSWORD = "tu_contraseña"
